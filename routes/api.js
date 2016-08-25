@@ -4,9 +4,9 @@
 var express = require('express');
 var router = express.Router();
 
-var task = require('../public/javascripts/task');
-var test = require('../public/javascripts/test');
-var config = require('../public/javascripts/config');
+var task = require('../public/serverjs/task');
+var test = require('../public/serverjs/test');
+var config = require('../public/serverjs/config');
 var promise = require('bluebird');
 promise.promisifyAll(task);
 

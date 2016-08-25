@@ -3,7 +3,7 @@
  */
 
 
-var baseUrl = '/api/';
+var baseUrl = '/api';
 $(document).ready(function() {
     $('#verifyjson').on('click', function() {
         if(verifyJSON()) {

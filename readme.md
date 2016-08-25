@@ -6,8 +6,8 @@
 
 ##How to start
 * Run `npm install` to install all the dependencies
-* Make sure you configure in config.js first
-* Run `nodemon index.js` to start server
+* Make sure you configure in `/public/serverjs/config.js` first
+* Run `npm start` to start server at localhost:3000, change url in `/bin/www`
 
 
 
