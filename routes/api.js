@@ -17,7 +17,7 @@ router.post('/requesttask', function(req, res) {
     var data = req.body
     task.distribute(key, data, function(err, data) {
         if(err) {
-            res.status(200).send('request failed: '+err)
+            res.status(200).send({status: 'request failed: '+err})
         } else {
             console.log(key+' distributed: '+JSON.stringify(data));
             res.status(200).send(data);
@@ -32,10 +32,10 @@ router.post('/requestscript', function(req,res) {
 
     task.distribute(key, data, function(err, data) {
         if(err) {
-            res.status(200).send('request failed: '+err)
+            res.status(200).send({status: 'request failed: '+err})
         } else {
             console.log(key+' distributed: '+JSON.stringify(data));
-            res.status(200).send(data);
+            res.status(200).send({script: data});
         }
     });
 })
@@ -47,7 +47,7 @@ router.post('/requestboth', function(req,res) {
 
     task.distribute(key, data, function(err, data) {
         if(err) {
-            res.status(200).send('request failed: '+err)
+            res.status(200).send({status: 'request failed: '+err})
         } else {
             console.log(key+' distributed: '+JSON.stringify(data));
             res.status(200).send(data);
@@ -60,7 +60,7 @@ router.post('/report', function(req, res) {
     var data = req.body;
     task.report(data, function(err) {
         if(err)
-            res.status(200).send('error: '+err);
+            res.status(200).send({status: 'request failed: '+err});
         else
             res.status(200).send({status: 'success'})
     });
@@ -76,7 +76,7 @@ router.post('/customerrequest', function(req, res) {
     console.log('customer pickup')
     task.getResult(req.body, function(err, data) {
         if(err) {
-            res.status(200).send('error: '+err)
+            res.status(200).send({status: 'request failed: '+err})
         } else {
             res.status(200).send(data)
         }

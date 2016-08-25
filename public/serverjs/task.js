@@ -187,39 +187,43 @@ function task() {
                 var field;
                 var result;
                 if(data.constructor == Array) {
-                    var fieldAndResultArray = []
-                    for (var i=0; i<data.length; i++) {
-                        field = data[i].customerData.uid;
-                        result = data[i].result;
-                        key = 'result_'+data[i].customerData.customerId;
-                        fieldAndResultArray.push(field)
-                        fieldAndResultArray.push((typeof result == 'object') ? JSON.stringify(result) : result)
-                        client.hdel(handling, data[i].taskId);
-                        client.hset(key, field, result)
-                    }
-                    // client.hmsetAsync(key, fieldAndResultArray).catch(function(err){return callback(err)})
+                    // var fieldAndResultArray = []
+                    data.forEach(function(entry) {
+                        client.hgetAsync(handling, entry.taskId).then(JSON.parse).then(function(res) {
+                            if(res) {
+                                field = res.customerData.uid;
+                                result = entry.result;
+                                key = 'result_'+res.customerData.customerId;
+                                client.hdel(handling, entry.taskId);
+                                client.hset(key, field, result)
+                            }
+                        }).catch(function(err) {return callback(err)})
+                    })
                 } else {
-                    key = 'result_'+data.customerData.customerId;
-                    field = data.customerData.uid;
-                    result = data.result;
-                    if((typeof  result) == 'object')
-                        result = JSON.stringify(result);
-                    client.hdel(handling, data.taskId);
-                    client.hset(key, field, result);
+                    client.hgetAsync(handling, data.taskId).then(JSON.parse).then(function(res) {
+                        if(res) {
+                            key = 'result_'+res.customerData.customerId;
+                            field = res.customerData.uid;
+                            result = data.result;
+                            if((typeof  result) == 'object')
+                                result = JSON.stringify(result);
+                            client.hdel(handling, data.taskId);
+                            client.hset(key, field, result);
+                        }
+                    }).catch(function(err) {return callback(err)})
                 }
                 break;
-            default:
+            default: // fail
                 if(data.constructor == Array) {
-                    client.hgetallAsync(handling).then(function(res) {
-                        for (var i=0; i<data.length; i++) {
-                            var taskId = data[i].taskId;
-                            var result = res[data[i].taskId]
-                            if (result) {
-                                self.rpush(false, result);
+                    data.forEach(function(entry) {
+                        client.hgetAsync(handling, entry.taskId).then(function(res) {
+                            if (res) {
+                                var taskId = entry.taskId;
+                                self.rpush(false, res);
                                 client.hdel(handling, taskId);
                             }
-                        }
-                    }).catch(function(err){return callback(err)})
+                        }).catch(function(err) {return callback(err)})
+                    })
                 }
                 else {
                     client.hgetAsync(handling, data.taskId).then(function(result) {
