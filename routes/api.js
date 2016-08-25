@@ -1,0 +1,87 @@
+/**
+ * Created by zhoucheng on 8/25/16.
+ */
+var express = require('express');
+var router = express.Router();
+
+var task = require('../public/javascripts/task');
+var test = require('../public/javascripts/test');
+var config = require('../public/javascripts/config');
+var promise = require('bluebird');
+promise.promisifyAll(task);
+
+
+router.post('/requesttask', function(req, res) {
+    console.log('request task');
+    var key = 'task'
+    var data = req.body
+    task.distribute(key, data, function(err, data) {
+        if(err) {
+            res.status(200).send('request failed: '+err)
+        } else {
+            console.log(key+' distributed: '+JSON.stringify(data));
+            res.status(200).send(data);
+        }
+    });
+})
+
+router.post('/requestscript', function(req,res) {
+    console.log('request script');
+    var key = 'script';
+    var data = req.body
+
+    task.distribute(key, data, function(err, data) {
+        if(err) {
+            res.status(200).send('request failed: '+err)
+        } else {
+            console.log(key+' distributed: '+JSON.stringify(data));
+            res.status(200).send(data);
+        }
+    });
+})
+
+router.post('/requestboth', function(req,res) {
+    console.log('request both');
+    var key = 'both';
+    var data = req.body
+
+    task.distribute(key, data, function(err, data) {
+        if(err) {
+            res.status(200).send('request failed: '+err)
+        } else {
+            console.log(key+' distributed: '+JSON.stringify(data));
+            res.status(200).send(data);
+        }
+    });
+})
+
+router.post('/report', function(req, res) {
+    console.log('incoming report')
+    var data = req.body;
+    task.report(data, function(err) {
+        if(err)
+            res.status(200).send('error: '+err);
+        else
+            res.status(200).send({status: 'success'})
+    });
+})
+
+router.post('/filltask', function(req, res) {
+    console.log('fill task');
+    task.initialize()
+    res.status(200).send({status: 'success'});
+})
+
+router.post('/customerrequest', function(req, res) {
+    console.log('customer pickup')
+    task.getResult(req.body, function(err, data) {
+        if(err) {
+            res.status(200).send('error: '+err)
+        } else {
+            res.status(200).send(data)
+        }
+    })
+})
+
+
+module.exports = router;

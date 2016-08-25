@@ -1,0 +1,23 @@
+extends layout
+
+block content
+  div
+    h1(class='display-inline-right')= title
+    a(href='https://github.com/zhouchengkho/taskServer' target='_blank') Docs
+  div(class='panel-body width-fifty float-left')
+    h5 METHOD
+    select(class='form-control width-twenty' id='method')
+      each method, i in methods
+        option(value=i)  #{method}
+    h5 URL
+    input(class='form-control width-eighty' id='url')
+    h5 REQUEST BODY
+    pre(class='width-eighty')
+      textarea(class='form-control' rows=5 id='jsontext')
+      button(class='btn btn-default display-inline verify-button' id='verifyjson') Verify JSON
+      h6(id='verifymsg' class='display-inline')
+
+    button(class='btn btn-default' id='send') SEND
+  div(class='panel-body')
+    h5 RESPOND BODY
+    pre(id='result' style='max-height: 500px')

@@ -1,0 +1,52 @@
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+
+.width-twenty {
+  width: 20% !important;
+}
+
+.width-eighty {
+  width: 80% !important;
+}
+
+.width-fifty {
+  width: 50% !important;
+}
+
+.float-left {
+  float: left;
+}
+pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+.string { color: green; }
+.number { color: darkorange; }
+.boolean { color: blue; }
+.null { color: magenta; }
+.key { color: red; }
+
+
+/*.verify-right {*/
+  /*display: inline;*/
+  /*margin-left: 10px;*/
+/*}*/
+
+.display-inline {
+  display: inline;
+  margin-left: 10px;
+}
+
+.display-inline-right {
+  display: inline;
+  margin-right: 10px;
+}
+
+.verify-button {
+  margin-top: 10px;
+  margin-left: 0px;
+}
