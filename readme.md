@@ -40,14 +40,12 @@
 
 * POST /requestscript
 
-```
-{}
-```
-
 `Return`
 
 ```
-script content
+{
+    "script": "some script"
+}
 ```
 
 * POST /requestboth
@@ -97,8 +95,11 @@ script content
 
 `Return`
 
-`Success or Error Info`
-
+```
+{
+    "status": "some status"
+}
+```
 > data can be array or json
 
 * POST /customerrequest
@@ -144,4 +145,63 @@ script content
 
 `Return`
 
-`Success or Error Info`
+```
+{
+    "status": "some status"
+}
+```
+
+* GET /taskqueue
+
+`Params`
+
+```
+@type: 'high' / 'low' / 'handling' / not given
+@count: a number / not given
+```
+
+`Returns`
+
+```
+{
+    "highRes": [
+        {
+            "template": {
+                "templateId": "test",
+                "content": "test"
+            },
+            "customerData": {
+                "uid": "a6ecfa2b-62d5-43b5-b87e-7d4aebb10f7f",
+                "customerId": "lifeng"
+            },
+            "taskId": "f14836c8-5922-4030-b0dc-201053b42584"
+        }
+    ],
+    "lowRes": [
+        {
+            "template": {
+                "templateId": "test",
+                "content": "test"
+            },
+            "customerData": {
+                "uid": "f9409d9c-14c6-48e8-b3d2-fa4544449043",
+                "customerId": "keyun"
+            },
+            "taskId": "ccd5cca7-0bf5-4897-9012-38d040280ce5"
+        }
+    ],
+    "handlingRes": [
+        {
+            "template": {
+                "templateId": "test",
+                "content": "test"
+            },
+            "customerData": {
+                "uid": "42f62bf6-d716-410d-8cb3-bb14d12491bd",
+                "customerId": ""
+            },
+            "taskId": "21ae852c-2f0b-4476-8763-85bca9181761"
+        }
+    ]
+}
+```
