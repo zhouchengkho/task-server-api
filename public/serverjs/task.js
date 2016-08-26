@@ -350,23 +350,21 @@ function task() {
                         }
                         res.lowRes = lowRes;
                         return res;
-                    }).then(function(res) {
-                        return client.hgetallAsync(handling).then(function(handlingRes) {
-                            var result = [];
-                            for(var key in handlingRes) {
-                                if(count <= 0) {
-                                    res.handlingRes = result;
-                                    return res;
-                                }
-                                result.push(JSON.parse(handlingRes[key]))
-                                count--;
-                            }
-                            res.handlingRes = handlingRes;
-                            return res;
-                        })
                     })
-                }).then(function(res){
-                    return callback(null, res)
+                }).then(function(res) {
+                    return client.hgetallAsync(handling).then(function(handlingRes) {
+                        var result = [];
+                        for(var key in handlingRes) {
+                            if(count <= 0) {
+                                res.handlingRes = result;
+                                return callback(null, res);
+                            }
+                            result.push(JSON.parse(handlingRes[key]))
+                            count--;
+                        }
+                        res.handlingRes = handlingRes;
+                        return callback(null, res);
+                    })
                 }).catch(function(err){return callback(err)})
                 break;
         }
@@ -383,6 +381,12 @@ function task() {
         callback(true)
     }
 
+    /**
+     * when getting new task from server, its integrity should be verified
+     * so no further error will be caused
+     * @param data
+     * @returns {boolean}
+     */
     this.verifyDataIntegrity = function(data) {
         if(data.constructor == Array) {
             for(var i = 0; i<data.length;i++) {

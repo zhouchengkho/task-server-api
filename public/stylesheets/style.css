@@ -50,3 +50,7 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
   margin-top: 10px;
   margin-left: 0px;
 }
+
+.float-right {
+  float: right;
+}
