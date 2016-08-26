@@ -35,7 +35,8 @@ function task() {
         if(prior) {
             priority = high;
         }
-
+        if(!value)
+            return;
         if(value.constructor == Array) {
             var multi = client.multi();
             for (var i=0; i<value.length; i++) {
@@ -74,6 +75,30 @@ function task() {
         this.rpush(false, low);
     }
 
+    /**
+     * New task coming in, should have verify process
+     * Maybe verify template & customerData too so when data is used there is no error
+     * @param reqBody
+     * @param callback
+     */
+    this.filltask = function(reqBody, callback) {
+        var data = reqBody.data;
+        var valid = this.verifyDataIntegrity(data);
+        if(valid) {
+            var priority = reqBody.priority ? reqBody.priority : 'low';
+            switch(priority){
+                case 'high':
+                    this.rpush(true, data);
+                    break;
+                default: // low
+                    this.rpush(false, data);
+                    break;
+            }
+            return callback()
+        } else {
+            return callback(new Error(error.dataNotValid))
+        }
+    }
     /**
      * distribute task or script or both
      * @param key should be task, script, both
@@ -122,14 +147,17 @@ function task() {
         }
         var result = [];
 
-        client.lrangeAsync(high, 0, -1).then(function (highList) {
+        client.lrangeAsync(high, 0, -1).then(function (highList) { // get task from high priority
             var highLen = highList.length ?  highList.length : 0;
-            if(highLen >= 1) { // get task from high priority
+            if(highLen >= 1) {
                 // var result = JSON.parse(list[0]);
                 var i = 0;
                 while(i < highLen && count > 0 ) {
                     var res = JSON.parse(highList[i])
-                    result.push(res)
+                    var data = {};
+                    data.template = res.template;
+                    data.taskId = res.taskId;
+                    result.push(data)
                     client.hset(handling, res.taskId, highList[i]);
                     client.lpop(high);
                     i++; count--;
@@ -144,7 +172,10 @@ function task() {
                         var i = 0;
                         while(i < lowLen && count > 0 ) {
                             var res = JSON.parse(lowList[i])
-                            result.push(res)
+                            var data = {};
+                            data.template = res.template;
+                            data.taskId = res.taskId;
+                            result.push(data)
                             client.hset(handling, res.taskId, lowList[i]);
                             client.lpop(low);
                             i++; count--;
@@ -268,6 +299,80 @@ function task() {
 
         })
     }
+
+    /**
+     * get queue
+     * @param query include type & count
+     * @param callback
+     */
+    this.getQueue = function(query, callback) {
+        var type = query.type ? query.type : '';
+        var count = query.count ? query.count : 100;
+        switch (type) {
+            case 'high':
+                client.lrangeAsync(high, 0, count - 1).then(function(res) {
+                    for(var i = 0; i<res.length;i++) {
+                        res[i] = JSON.parse(res[i])
+                    }
+                    return callback(null, {highRes: res})
+                }).catch(function(err){return callback(err)})
+                break;
+            case 'low':
+                client.lrangeAsync(low, 0, count - 1).then(function(res) {
+                    for(var i = 0; i<res.length;i++) {
+                        res[i] = JSON.parse(res[i])
+                    }
+                    return callback(null, {lowRes: res})
+                }).catch(function(err){return callback(err)})
+                break;
+            case 'handling':
+                client.hgetallAsync(handling).then(function(res) {
+                    var result = [];
+                    for(var key in res) {
+                        if(count <= 0)
+                            return callback(null, {handlingRes: result})
+                        result.push(JSON.parse(res[key]))
+                        count--;
+                    }
+                    return callback(null, {handlingRes: result})
+                }).catch(function(err) {return callback(err)})
+                break;
+            default:
+                client.lrangeAsync(high, 0, count - 1).then(function(res) {
+                    for(var i = 0; i<res.length;i++) {
+                        res[i] = JSON.parse(res[i])
+                    }
+                    return {highRes: res}
+                }).then(function(res) {
+                    return client.lrangeAsync(low, 0, count - 1).then(function(lowRes) {
+                        for(var i = 0; i<lowRes.length;i++) {
+                            lowRes[i] = JSON.parse(lowRes[i])
+                        }
+                        res.lowRes = lowRes;
+                        return res;
+                    }).then(function(res) {
+                        return client.hgetallAsync(handling).then(function(handlingRes) {
+                            var result = [];
+                            for(var key in handlingRes) {
+                                if(count <= 0) {
+                                    res.handlingRes = result;
+                                    return res;
+                                }
+                                result.push(JSON.parse(handlingRes[key]))
+                                count--;
+                            }
+                            res.handlingRes = handlingRes;
+                            return res;
+                        })
+                    })
+                }).then(function(res){
+                    return callback(null, res)
+                }).catch(function(err){return callback(err)})
+                break;
+        }
+
+
+    }
     /**
      * verify customer
      * @param customerId
@@ -278,7 +383,26 @@ function task() {
         callback(true)
     }
 
-
+    this.verifyDataIntegrity = function(data) {
+        if(data.constructor == Array) {
+            for(var i = 0; i<data.length;i++) {
+                if(data[i].customerData || data[i].template) {
+                    if(!data[i].customerData.customerId || !data[i].customerData.uid || !data[i].template.templateId || !data[i].template.content)
+                        return false;
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            if(data.customerData || data.template) {
+                if(!data.customerData.customerId || !data.customerData.uid || !data.template.templateId || !data.template.content)
+                    return false;
+            } else {
+                return false;
+            }
+        }
+        return true
+    }
 }
 
 

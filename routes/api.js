@@ -83,5 +83,14 @@ router.post('/customerrequest', function(req, res) {
     })
 })
 
+router.get('/taskqueue', function(req, res) {
+    task.getQueue(req.query, function(err, data) {
+        if(err) {
+            res.status(200).send({status: 'error: '+err})
+        } else {
+            res.status(200).send(data)
+        }
+    })
 
+})
 module.exports = router;
