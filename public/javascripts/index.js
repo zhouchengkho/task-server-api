@@ -20,6 +20,22 @@ $(document).ready(function() {
         send();
     })
 
+    $('#logout').on('click', function() {
+        $.ajax({
+            url: '/admin/logout',
+            method: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            data: "",
+            dataType: 'json',
+            success: function(res){
+                if(res.status == 1) {
+                    location.reload()
+                }
+            },
+            error: function(xhr, status, error) {
+            }
+        })
+    })
 
 })
 

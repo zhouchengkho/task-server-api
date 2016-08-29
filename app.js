@@ -4,10 +4,10 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-
+var session = require('express-session')
 var routes = require('./routes/index');
-var users = require('./routes/users');
 var api = require('./routes/api');
+var admin = require('./routes/admin');
 var app = express();
 
 // view engine setup
@@ -22,9 +22,31 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+
+app.use(session({
+    secret: 'now-you-see-me',
+    resave: true,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: false,
+        maxAge: 1000 * 60 * 60 * 24
+    }
+}));
+
+app.all('/*', function(req, res, next) {
+    console.log(req.url)
+    if(!req.session.user && req.url!= '/admin/login' && req.url.substr(0, 4) != '/api')
+        return res.redirect('/admin/login');
+    next()
+})
+
+
+
+
 app.use('/', routes);
-app.use('/users', users);
 app.use('/api', api);
+app.use('/admin', admin);
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   var err = new Error('Not Found');

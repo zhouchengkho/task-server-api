@@ -1,6 +1,5 @@
 body {
   padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
 a {
@@ -10,6 +9,10 @@ a {
 
 .width-twenty {
   width: 20% !important;
+}
+
+.width-thirty {
+  width: 30% !important;
 }
 
 .width-eighty {
@@ -53,4 +56,18 @@ pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
 
 .float-right {
   float: right;
+}
+
+a {
+    margin-left: 5px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+.admin-panel >button, input, select{
+    margin-bottom: 5px;
+}
+
+#gen-verifycode {
+    margin-left: 5px;
 }
