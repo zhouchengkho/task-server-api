@@ -83,6 +83,15 @@ function task() {
      */
     this.filltask = function(reqBody, callback) {
         var data = reqBody.data;
+        if(data.constructor == Array) {
+            for(var i = 0; i< data.length; i++) {
+                data[i].customerData = reqBody.customerData;
+                data[i].template = reqBody.template;
+            }
+        } else {
+            data.customerData = reqBody.customerData;
+            data.template = reqBody.template;
+        }
         var valid = this.verifyDataIntegrity(data);
         if(valid) {
             var priority = reqBody.priority ? reqBody.priority : 'low';
@@ -107,38 +116,42 @@ function task() {
      */
     this.distribute = function(key, data, callback) {
         // var customerData = data.customerData;
-        if(typeof data == 'string')
-            data = JSON.parse(data)
-        var count = data.taskCount ? data.taskCount : 1;
-        var self = this;
+        this.verifyUser('crawler', data.username, data.password, function(valid) {
+            if(!valid)
+                return callback(new Error(error.verifyFail))
+            if(typeof data == 'string')
+                data = JSON.parse(data)
+            var count = data.taskCount ? data.taskCount : 1;
+            var self = this;
 
-        switch (key) {
-            case 'task':
-                self.getTask(count, function(err, res) {
-                    return callback(err, res)
-                })
-                break;
-            case 'script':
-                self.getScript(scriptKey, function (err, res) {
-                    return callback(err, res)
-                })
-                break;
-            case 'both':
-                self.getScript(scriptKey, function (scriptErr, scriptRes) {
-                    if(scriptErr) return callback(scriptErr)
-                    self.getTask(count, function(taskErr, taskRes) {
-                        var res = {
-                            taskRes: taskRes,
-                            scriptRes: scriptRes
-                        }
-                        return callback(taskErr, res)
+            switch (key) {
+                case 'task':
+                    self.getTask(count, function(err, res) {
+                        return callback(err, res)
                     })
-                })
-                break;
-            default:
-                return callback(new Error(error.unknownkey))
-                break;
-        }
+                    break;
+                case 'script':
+                    self.getScript(scriptKey, function (err, res) {
+                        return callback(err, res)
+                    })
+                    break;
+                case 'both':
+                    self.getScript(scriptKey, function (scriptErr, scriptRes) {
+                        if(scriptErr) return callback(scriptErr)
+                        self.getTask(count, function(taskErr, taskRes) {
+                            var res = {
+                                taskRes: taskRes,
+                                scriptRes: scriptRes
+                            }
+                            return callback(taskErr, res)
+                        })
+                    })
+                    break;
+                default:
+                    return callback(new Error(error.unknownkey))
+                    break;
+            }
+        })
     }
 
     this.getTask = function(count, callback) {
@@ -200,7 +213,7 @@ function task() {
     }
 
     /**
-     * receive report from user, if success, store data as result_customerId
+     * receive report from crawler, if success, store data as result_customerId
      * else put task back to waiting queue with low priority
      * @param reqBody
      * @param callback
@@ -212,61 +225,82 @@ function task() {
             reqBody = JSON.parse(reqBody)
         var status = reqBody.status;
         var data = reqBody.data;
-        switch(status) {
-            case 'success':
-                var key;
-                var field;
-                var result;
-                if(data.constructor == Array) {
-                    // var fieldAndResultArray = []
-                    data.forEach(function(entry) {
-                        client.hgetAsync(handling, entry.taskId).then(JSON.parse).then(function(res) {
+        this.verifyUser('crawler', reqBody.crawler.username, reqBody.crawler.password, function(valid){
+            if(!valid)
+                return callback(new Error(error.verifyFail))
+
+            switch(status) {
+                case 'success':
+                    var key;
+                    var field;
+                    var result;
+                    // save data
+                    if(data.constructor == Array) {
+                        // var fieldAndResultArray = []
+                        data.forEach(function(entry) {
+                            client.hgetAsync(handling, entry.taskId).then(JSON.parse).then(function(res) {
+                                if(res) {
+                                    field = res.customerData.uid;
+                                    result = entry.result;
+                                    key = 'result_'+res.customerData.customerId;
+                                    client.hdel(handling, entry.taskId);
+                                    client.hset(key, field, result)
+                                }
+                            }).catch(function(err) {return callback(err)})
+                        })
+                    } else {
+                        client.hgetAsync(handling, data.taskId).then(JSON.parse).then(function(res) {
                             if(res) {
-                                field = res.customerData.uid;
-                                result = entry.result;
                                 key = 'result_'+res.customerData.customerId;
-                                client.hdel(handling, entry.taskId);
-                                client.hset(key, field, result)
+                                field = res.customerData.uid;
+                                result = data.result;
+                                if((typeof  result) == 'object')
+                                    result = JSON.stringify(result);
+                                client.hdel(handling, data.taskId);
+                                client.hset(key, field, result);
                             }
                         }).catch(function(err) {return callback(err)})
-                    })
-                } else {
-                    client.hgetAsync(handling, data.taskId).then(JSON.parse).then(function(res) {
-                        if(res) {
-                            key = 'result_'+res.customerData.customerId;
-                            field = res.customerData.uid;
-                            result = data.result;
-                            if((typeof  result) == 'object')
-                                result = JSON.stringify(result);
-                            client.hdel(handling, data.taskId);
-                            client.hset(key, field, result);
-                        }
+                    }
+
+                    //add success count to crawler
+                    client.hgetAsync('crawler', reqBody.crawler.username).then(JSON.parse).then(function(res) {
+                        res.lastActive = new Date();
+                        res.successCount++;
+                        client.hset('crawler', reqBody.crawler.username, JSON.stringify(res))
                     }).catch(function(err) {return callback(err)})
-                }
-                break;
-            default: // fail
-                if(data.constructor == Array) {
-                    data.forEach(function(entry) {
-                        client.hgetAsync(handling, entry.taskId).then(function(res) {
-                            if (res) {
-                                var taskId = entry.taskId;
-                                self.rpush(false, res);
-                                client.hdel(handling, taskId);
+
+                    break;
+                default: // fail
+                    if(data.constructor == Array) {
+                        data.forEach(function(entry) {
+                            client.hgetAsync(handling, entry.taskId).then(function(res) {
+                                if (res) {
+                                    var taskId = entry.taskId;
+                                    self.rpush(false, res);
+                                    client.hdel(handling, taskId);
+                                }
+                            }).catch(function(err) {return callback(err)})
+                        })
+                    }
+                    else {
+                        client.hgetAsync(handling, data.taskId).then(function(result) {
+                            if (result) {
+                                self.rpush(false, result);
+                                client.hdel(handling, data.taskId);
                             }
-                        }).catch(function(err) {return callback(err)})
-                    })
-                }
-                else {
-                    client.hgetAsync(handling, data.taskId).then(function(result) {
-                        if (result) {
-                            self.rpush(false, result);
-                            client.hdel(handling, data.taskId);
-                        }
-                    }).catch(function(err){return callback(err)})
-                }
-                break;
-        }
-        callback()
+                        }).catch(function(err){return callback(err)})
+                    }
+                    // add fail count to crawler
+                    client.hgetAsync('crawler', reqBody.crawler.username).then(JSON.parse).then(function(res) {
+                        res.lastActive = new Date();
+                        res.failCount++;
+                        client.hset('crawler', reqBody.crawler.username, JSON.stringify(res))
+                    }).catch(function(err) {return callback(err)})
+                    break;
+            }
+            callback()
+
+        });
     }
 
     /**
@@ -276,9 +310,7 @@ function task() {
      */
     this.getResult = function(data, callback) {
         var self = this;
-        if(typeof data == 'string')
-            data = JSON.parse(data)
-        self.verifyCustomer(data.customerId, data.verifyCode, function(valid) {
+        self.verifyUser('customer', data.customer.username, data.customer.password, function(valid) {
             if(!valid)
                 return callback(new Error(error.verifyFail))
             var set = data.uidSet;
@@ -372,13 +404,21 @@ function task() {
 
     }
     /**
-     * verify customer
-     * @param customerId
-     * @param verifyCode
-     * @param callback valid(true or false)
+     * verify customer or crawler
+     * @param key
+     * @param username
+     * @param password
+     * @param callback
      */
-    this.verifyCustomer = function(customerId, verifyCode, callback) {
-        callback(true)
+    this.verifyUser = function(key, username, password, callback) {
+        client.hgetAsync(key, username).then(function(res) {
+            if(res) {
+                res = JSON.parse(res)
+                if(res.password === password)
+                    return callback(true)
+            }
+            return callback(false)
+        })
     }
 
     /**

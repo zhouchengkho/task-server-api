@@ -18,6 +18,10 @@
 ```
 {
   "taskCount": 1
+  "crawler": {
+  "username": "crawler_1",
+  "password": "123456"
+  }
 }
 ```
 
@@ -45,7 +49,11 @@
 
 ```
 {
-    "script": "some script"
+    "script": "some script",
+     "crawler": {
+      "username": "crawler_1",
+      "password": "123456"
+      }
 }
 ```
 
@@ -53,7 +61,11 @@
 
 ```
 {
-  "taskCount": 1
+  "taskCount": 1,
+   "crawler": {
+    "username": "crawler_1",
+    "password": "123456"
+    }
 }
 ```
 
@@ -83,6 +95,10 @@
 ```
 {
   "status": "success",
+   "crawler": {
+    "username": "crawler_1",
+    "password": "123456"
+    },
   "data":[{
   	"taskId":"ec17fcb4-e1d3-4e7e-aaa0-c085eb0b46b0",
   	"customerData":{
@@ -107,9 +123,11 @@
 
 ```
 {
-	"customerId":"",
-	"verifyCode":"",
-	"uidSet":[]
+	 "customer": {
+      "username": "keyun",
+      "password": "123456"
+      },
+      "uidSet":[]
 }
 ```
 
