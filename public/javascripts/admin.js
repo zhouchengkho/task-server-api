@@ -1,44 +1,84 @@
 $(document).ready(function() {
-    $('#login').on('click', function() {
-        var data = {
-            username: $('#username').val(),
-            password: $('#password').val()
+
+    $('#type').on('change', function() {
+        var type = $.trim($(this).find('option:selected').text().toLowerCase());
+        var username = $('#username')
+        var password = $('#password')
+        switch(type) {
+            case 'list':
+                username.attr('disabled', 'disabled');
+                password.attr('disabled', 'disabled');
+                break;
+            case 'find':
+                username.removeAttr('disabled');
+                password.attr('disabled', 'disabled');
+                break;
+            case 'update':
+                username.removeAttr('disabled');
+                password.removeAttr('disabled');
+                break;
+            case 'delete':
+                username.removeAttr('disabled');
+                password.attr('disabled', 'disabled');
+                break;
+            case 'add':
+                username.removeAttr('disabled');
+                password.removeAttr('disabled');
+                break;
+            default:
+                break;
         }
-        $.ajax({
-            url: '/admin/login',
-            method: 'POST',
-            contentType: 'application/json; charset=utf-8',
-            data: JSON.stringify(data),
-            dataType: 'json',
-            success: function(res){
-                if(res.status == 1) {
-                    location.reload()
-                } else {
-                    $('#msg').text('Login Fail')
-                }
-
-
-            },
-            error: function(xhr, status, error) {
-                $('#msg').text('Error: '+error)
-            }
-        })
     })
 
-    $('#password').on('keydown', function(e) {
-        if(e.keyCode == 13) { // enter
-            $('#login').click()
-        }
+    $('#gen-password').on('click', function() {
+        $('#password').val(generateUUID())
     })
 
     $('#send').on('click', function() {
         var type = $.trim($('#type').find('option:selected').text().toLowerCase());
         var target = $.trim($('#target').find('option:selected').text().toLowerCase());
+        var method = '';
+        var data = '';
+        var url = '/admin/'+type+'/'+target;
+        switch (type) {
+            case 'list':
+                method = 'GET'
+                break;
+            case 'find':
+                method = 'GET'
+                url = url+'?username='+ $('#username').val()
+                break;
+            case 'update':
+                method = 'POST';
+                data = {
+                    username: $('#username').val(),
+                    password: $('#password').val()
+                }
+                data = JSON.stringify(data)
+                break;
+            case 'delete':
+                method = 'POST';
+                data = {
+                    username: $('#username').val(),
+                }
+                data = JSON.stringify(data)
+                break;
+            case 'add':
+                method = 'POST';
+                data = {
+                    username: $('#username').val(),
+                    password: $('#password').val()
+                }
+                data = JSON.stringify(data)
+                break;
+            default:
+                break;
+        }
         $.ajax({
-            url: '/admin/'+type+'/'+target,
-            method: 'GET',
+            url: url,
+            method: method,
             contentType: 'application/json; charset=utf-8',
-            data: "",
+            data: data,
             dataType: 'json',
             success: function(res){
                 if(typeof res == 'object') {
@@ -52,6 +92,7 @@ $(document).ready(function() {
             }
         })
     })
+
 
 })
 
@@ -72,4 +113,17 @@ function syntaxHighlight(json) {
         }
         return '<span class="' + cls + '">' + match + '</span>';
     });
+}
+
+function generateUUID(){
+    var d = new Date().getTime();
+    if(window.performance && typeof window.performance.now === "function"){
+        d += performance.now(); //use high-precision timer if available
+    }
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = (d + Math.random()*16)%16 | 0;
+        d = Math.floor(d/16);
+        return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+    });
+    return uuid;
 }

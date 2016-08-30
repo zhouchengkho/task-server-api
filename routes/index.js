@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var admin = require('../public/serverjs/admin');
+var admin = require('../serverjs/admin');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {

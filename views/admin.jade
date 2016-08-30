@@ -8,6 +8,7 @@ html
     body
         div
             h1(class='display-inline-right')= title
+            a(id='API' href='/') API
         div(class='admin-panel panel-body width-fifty float-left')
             select(class='form-control width-twenty float-left' id='type')
                 each type, i in types
@@ -15,10 +16,10 @@ html
             select(class='form-control width-twenty display-inline' id='target')
                 each target, i in targets
                     option(value=i)  #{target}
-            input(placeholder='key' class='form-control width-eighty' )
-            input(placeholder='verifyCode' class='form-control width-eighty' )
+            input(placeholder='username' class='form-control width-eighty' id='username' disabled='disabled')
+            input(placeholder='password' class='form-control width-eighty' id='password' disabled='disabled')
             button(class='btn btn-default' id='send') SEND
-            button(class='btn btn-default' id='gen-verifycode') Gen-VerifyCode
+            button(class='btn btn-default' id='gen-password') Gen-Password
         div(class='panel-body width-fifty float-right')
             h5 RESPOND BODY
             pre(id='result' style='max-height: 500px')

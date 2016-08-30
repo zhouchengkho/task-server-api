@@ -6,7 +6,8 @@
 
 ##How to start
 * Run `npm install` to install all the dependencies
-* Make sure you configure in `/public/serverjs/config.js` first
+* Make sure you configure in `/serverjs/config.js` first
+* Run `node /serverjs/admininit.js` to set up admin
 * Run `npm start` to start server at localhost:3000, change url in `/bin/www`
 
 

@@ -8,7 +8,9 @@ var error = {
     countToBig: 'Can\'t request more than 10 tasks once',
     notInHandling: 'Task no longer in handling',
     DBDown: 'problem with database, contact admin',
-    dataNotValid: 'Data missing valid attribute(s), please check'
+    dataNotValid: 'Data missing valid attribute(s), please check',
+    userNotExist: 'No correspondent user exists',
+    userExist: 'User already exists'
 }
 
 module.exports = error;
