@@ -1,5 +1,18 @@
 $(document).ready(function() {
 
+
+    var target = $.trim($('#target').find('option:selected').text().toLowerCase());
+
+    var customerField = [
+        { name: "id", type: "text", width: 50, readOnly: true},
+        { name: "verifyCode", type:"text", width: 70 },
+        { name: "email", type: "text", width: 100 },
+        { name: "alive", type: "checkbox", width: 50, title: "Is Alive", sorting: false },
+        { name: 'lastActive', type: 'text', width: 70, readOnly:true},
+        // { name: "createdAt", type: 'text', width: 100, readOnly: true},
+        { type: "control" }
+    ];
+
     $('#type').on('change', function() {
         var type = $.trim($(this).find('option:selected').text().toLowerCase());
         var username = $('#username')
@@ -30,9 +43,6 @@ $(document).ready(function() {
         }
     })
 
-    $('#gen-password').on('click', function() {
-        $('#password').val(generateUUID())
-    })
 
     $('#send').on('click', function() {
         var type = $.trim($('#type').find('option:selected').text().toLowerCase());
@@ -93,37 +103,83 @@ $(document).ready(function() {
         })
     })
 
+    $('#logout').on('click', function() {
+        $.ajax({
+            url: '/admin/logout',
+            method: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            data: "",
+            dataType: 'json',
+            success: function(res){
+                if(res.status == 1) {
+                    location.href = '/'
+                }
+            },
+            error: function(xhr, status, error) {
+            }
+        })
+    })
+
+
+
+    $("#table").jsGrid({
+        width: "100%",
+
+        inserting: true,
+        editing: true,
+        sorting: true,
+        paging: true,
+        pageSize: 10,
+        autoload: true,
+        filtering: true,
+        // data: [],
+
+        controller: {
+           loadData: function(filter) {
+               console.log(JSON.stringify(filter))
+               var data = $.Deferred();
+               $.ajax({
+                   type: "GET",
+                   contentType: "application/json; charset=utf-8",
+                   url: "/admin/list/customer",
+                   dataType: "json"
+               }).done(function(response){
+                   data.resolve(response.data);
+               });
+               return data.promise();
+           },
+            updateItem: function(item, editedItem) {
+                console.log('item: '+JSON.stringify(item));
+                console.log('edited: '+JSON.stringify(editedItem))
+                var data = $.Deferred();
+                data.resolve({id:'update'})
+                return data.promise()
+            }
+        },
+
+        fields: target === 'customer' ? customerField : []
+    });
+
+
+
+    function fetchData(url, method, data) {
+        var options = {
+            url: url,
+            method: method,
+            contentType: 'application/json; charset=utf-8',
+            data: data,
+            success: function(res){
+                // alert('success '+JSON.stringify(res.data))
+                return res.data;
+            },
+            error: function(xhr, status, error) {
+                console.log(error)
+            }
+        }
+        if(method === 'POST')
+            options.dataType = 'json'
+
+        return $.ajax(options)
+    }
 
 })
-
-function syntaxHighlight(json) {
-    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-        var cls = 'number';
-        if (/^"/.test(match)) {
-            if (/:$/.test(match)) {
-                cls = 'key';
-            } else {
-                cls = 'string';
-            }
-        } else if (/true|false/.test(match)) {
-            cls = 'boolean';
-        } else if (/null/.test(match)) {
-            cls = 'null';
-        }
-        return '<span class="' + cls + '">' + match + '</span>';
-    });
-}
-
-function generateUUID(){
-    var d = new Date().getTime();
-    if(window.performance && typeof window.performance.now === "function"){
-        d += performance.now(); //use high-precision timer if available
-    }
-    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = (d + Math.random()*16)%16 | 0;
-        d = Math.floor(d/16);
-        return (c=='x' ? r : (r&0x3|0x8)).toString(16);
-    });
-    return uuid;
-}

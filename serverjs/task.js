@@ -3,6 +3,7 @@
  */
 var redis = require('redis');
 var bluebird = require('bluebird'); // for async
+var crypto = require('crypto');
 var uuid = require('uuid');
 var test = require('./test');
 var config = require('./config');
@@ -23,6 +24,7 @@ var handling = config.handling;
 var script = config.script;
 var scriptKey = config.scriptKey;
 var maxTaskCount = config.maxTaskCount;
+var defaultTaskCount = config.defaultTaskCount;
 function task() {
     /**
      * right push for redis list
@@ -63,16 +65,53 @@ function task() {
      *  for test
      */
     this.initialize = function() {
-        var high = test.getHighValue();
-        for (var i=0; i< high.length; i++) {
-            high[i].taskId = uuid.v4();
+        var reqBody = test.getHighValue();
+        var data = reqBody.data;
+        if(data.constructor == Array) {
+            for(var i = 0; i< data.length; i++) {
+                data[i].taskId = uuid.v4()
+                data[i].customerData = reqBody.customerData;
+                data[i].template = reqBody.template;
+            }
+        } else {
+            data.taskId = uuid.v4()
+            data.customerData = reqBody.customerData;
+            data.template = reqBody.template;
         }
-        var low = test.getLowValue();
-        for (var i=0; i< low.length; i++) {
-            low[i].taskId = uuid.v4();
+        var priority = reqBody.priority ? reqBody.priority : 'low';
+        switch(priority){
+            case 'high':
+                this.rpush(true, data);
+                break;
+            default: // low
+                this.rpush(false, data);
+                break;
         }
-        this.rpush(true, high);
-        this.rpush(false, low);
+
+        reqBody = test.getLowValue();
+        data = reqBody.data;
+        if(data.constructor == Array) {
+            for(var i = 0; i< data.length; i++) {
+                data[i].taskId = uuid.v4()
+                data[i].customerData = reqBody.customerData;
+                data[i].template = reqBody.template;
+            }
+        } else {
+            data.taskId = uuid.v4()
+            data.customerData = reqBody.customerData;
+            data.template = reqBody.template;
+        }
+        priority = reqBody.priority ? reqBody.priority : 'low';
+        switch(priority){
+            case 'high':
+                this.rpush(true, data);
+                break;
+            default: // low
+                this.rpush(false, data);
+                break;
+        }
+
+
     }
 
     /**
@@ -81,33 +120,60 @@ function task() {
      * @param reqBody
      * @param callback
      */
-    this.filltask = function(reqBody, callback) {
-        var data = reqBody.data;
-        if(data.constructor == Array) {
-            for(var i = 0; i< data.length; i++) {
-                data[i].customerData = reqBody.customerData;
-                data[i].template = reqBody.template;
-            }
-        } else {
-            data.customerData = reqBody.customerData;
-            data.template = reqBody.template;
-        }
-        var valid = this.verifyDataIntegrity(data);
-        if(valid) {
-            var priority = reqBody.priority ? reqBody.priority : 'low';
-            switch(priority){
-                case 'high':
-                    this.rpush(true, data);
-                    break;
-                default: // low
-                    this.rpush(false, data);
-                    break;
-            }
-            return callback()
-        } else {
+    this.fillTask = function(reqBody, callback) {
+        var self = this;
+        var valid = this.verifyDataIntegrity(reqBody);
+        if (!valid)
             return callback(new Error(error.dataNotValid))
+
+        var data = [];
+        var reqData = reqBody.data;
+        var customerId = reqBody.customer.id;
+        var templateId = reqBody.template.id;
+        var ts = reqBody.template.ts;
+        var uid = self.genUid(customerId, templateId)
+        // var uid = 'customer.template'
+        if (reqData.constructor == Array) {
+            for (var i = 0; i < reqData.length; i++) {
+                data[i] = {};
+                data[i].data = reqData[i]
+                data[i].taskId = uuid.v4()
+                data[i].uid = uid
+                data[i].customerId = customerId;
+                data[i].templateId = templateId;
+                data[i].ts = ts;
+            }
+        } else {
+            data = {};
+            data.data = reqData;
+            data.taskId = uuid.v4()
+            data.uid = uid
+            data.customerId = customerId;
+            data.templateId = templateId;
+            data.ts = ts;
         }
+
+        var priority = reqBody.priority ? reqBody.priority : 'low';
+        switch (priority) {
+            case 'high':
+                this.rpush(true, data);
+                break;
+            default: // low
+                this.rpush(false, data);
+                break;
+        }
+
+        // update script
+        var toSave = {
+            script: reqBody.template.script,
+            ts: ts
+        }
+        client.hset(script, uid, JSON.stringify(toSave))
+
+        return callback()
+
     }
+
     /**
      * distribute task or script or both
      * @param key should be task, script, both
@@ -116,13 +182,15 @@ function task() {
      */
     this.distribute = function(key, data, callback) {
         // var customerData = data.customerData;
-        this.verifyUser('crawler', data.username, data.password, function(valid) {
+        var self = this;
+        if(!data.client.id || !data.client.password)
+            return callback(error.verifyFail)
+        this.verifyClient(data.client.id, data.client.password, function(valid) {
             if(!valid)
                 return callback(new Error(error.verifyFail))
             if(typeof data == 'string')
                 data = JSON.parse(data)
-            var count = data.taskCount ? data.taskCount : 1;
-            var self = this;
+            var count = data.taskCount ? data.taskCount : defaultTaskCount;
 
             switch (key) {
                 case 'task':
@@ -131,12 +199,16 @@ function task() {
                     })
                     break;
                 case 'script':
-                    self.getScript(scriptKey, function (err, res) {
+                    if(!data.uid)
+                        return callback(error.uidNotProvided)
+                    self.getScript(data.uid, function (err, res) {
                         return callback(err, res)
                     })
                     break;
                 case 'both':
-                    self.getScript(scriptKey, function (scriptErr, scriptRes) {
+                    if(!data.uid)
+                        return callback(error.uidNotProvided)
+                    self.getScript(data.uid, function (scriptErr, scriptRes) {
                         if(scriptErr) return callback(scriptErr)
                         self.getTask(count, function(taskErr, taskRes) {
                             var res = {
@@ -155,9 +227,7 @@ function task() {
     }
 
     this.getTask = function(count, callback) {
-        if(count > maxTaskCount) {
-            return callback(new Error(error.countToBig))
-        }
+        count = count > maxTaskCount ? maxTaskCount : count;
         var result = [];
 
         client.lrangeAsync(high, 0, -1).then(function (highList) { // get task from high priority
@@ -168,8 +238,10 @@ function task() {
                 while(i < highLen && count > 0 ) {
                     var res = JSON.parse(highList[i])
                     var data = {};
-                    data.template = res.template;
                     data.taskId = res.taskId;
+                    data.uid = res.uid
+                    data.ts = res.ts
+                    data.data = res.data
                     result.push(data)
                     client.hset(handling, res.taskId, highList[i]);
                     client.lpop(high);
@@ -186,8 +258,9 @@ function task() {
                         while(i < lowLen && count > 0 ) {
                             var res = JSON.parse(lowList[i])
                             var data = {};
-                            data.template = res.template;
                             data.taskId = res.taskId;
+                            data.uid = res.uid
+                            data.data = res.data
                             result.push(data)
                             client.hset(handling, res.taskId, lowList[i]);
                             client.lpop(low);
@@ -203,12 +276,11 @@ function task() {
     }
     
     this.getScript = function(key, callback) {
-        client.hgetallAsync(script).then(function (res) {
-            return res[key];
-        }).then(function(resScript){
-            if(resScript)
-                return callback(null, resScript)
-            return callback(new Error(error.emptyScript))
+        client.hgetAsync(script, key).then(function (resScript) {
+            if(!resScript)
+                return callback(new Error(error.emptyScript))
+            resScript = JSON.parse(resScript)
+            return callback(null, resScript)
         }).catch(function(err){return callback(err)})
     }
 
@@ -225,7 +297,7 @@ function task() {
             reqBody = JSON.parse(reqBody)
         var status = reqBody.status;
         var data = reqBody.data;
-        this.verifyUser('crawler', reqBody.crawler.username, reqBody.crawler.password, function(valid){
+        this.verifyClient(reqBody.client.id, reqBody.client.password, function(valid){
             if(!valid)
                 return callback(new Error(error.verifyFail))
 
@@ -238,35 +310,38 @@ function task() {
                     if(data.constructor == Array) {
                         // var fieldAndResultArray = []
                         data.forEach(function(entry) {
-                            client.hgetAsync(handling, entry.taskId).then(JSON.parse).then(function(res) {
+                            client.hgetAsync(handling, entry.taskId).then(function(res) {
                                 if(res) {
-                                    field = res.customerData.uid;
-                                    result = entry.result;
-                                    key = 'result_'+res.customerData.customerId;
+                                    res = JSON.parse(res)
+                                    field = entry.taskId;
+                                    result = res
+                                    result.result = entry.result
+                                    key = 'result_'+res.customerId;
                                     client.hdel(handling, entry.taskId);
-                                    client.hset(key, field, result)
+                                    client.hset(key, field, JSON.stringify(result))
                                 }
                             }).catch(function(err) {return callback(err)})
                         })
                     } else {
-                        client.hgetAsync(handling, data.taskId).then(JSON.parse).then(function(res) {
+                        client.hgetAsync(handling, data.taskId).then(function(res) {
                             if(res) {
-                                key = 'result_'+res.customerData.customerId;
-                                field = res.customerData.uid;
-                                result = data.result;
-                                if((typeof  result) == 'object')
-                                    result = JSON.stringify(result);
+                                res = JSON.parse(res)
+                                key = 'result_'+res.customerId;
+                                field = res.taskId;
+                                result = res
+                                result.result = data.result
+
                                 client.hdel(handling, data.taskId);
-                                client.hset(key, field, result);
+                                client.hset(key, field, JSON.stringify(result));
                             }
                         }).catch(function(err) {return callback(err)})
                     }
 
-                    //add success count to crawler
-                    client.hgetAsync('crawler', reqBody.crawler.username).then(JSON.parse).then(function(res) {
+                    //add success count to client
+                    client.hgetAsync('client', reqBody.client.id).then(JSON.parse).then(function(res) {
                         res.lastActive = new Date();
                         res.successCount++;
-                        client.hset('crawler', reqBody.crawler.username, JSON.stringify(res))
+                        client.hset('client', reqBody.client.id, JSON.stringify(res))
                     }).catch(function(err) {return callback(err)})
 
                     break;
@@ -290,11 +365,11 @@ function task() {
                             }
                         }).catch(function(err){return callback(err)})
                     }
-                    // add fail count to crawler
-                    client.hgetAsync('crawler', reqBody.crawler.username).then(JSON.parse).then(function(res) {
+                    // add fail count to client
+                    client.hgetAsync('client', reqBody.client.id).then(JSON.parse).then(function(res) {
                         res.lastActive = new Date();
                         res.failCount++;
-                        client.hset('crawler', reqBody.crawler.username, JSON.stringify(res))
+                        client.hset('client', reqBody.client.id, JSON.stringify(res))
                     }).catch(function(err) {return callback(err)})
                     break;
             }
@@ -310,13 +385,13 @@ function task() {
      */
     this.getResult = function(data, callback) {
         var self = this;
-        self.verifyUser('customer', data.customer.username, data.customer.password, function(valid) {
+        self.verifyCustomer(data.customer.id, data.customer.verifyCode, function(valid) {
             if(!valid)
                 return callback(new Error(error.verifyFail))
             var set = data.uidSet;
             if(set) {
                 var result = {};
-                client.hgetallAsync('result_'+data.customerId).then(function(res) {
+                client.hgetallAsync('result_'+data.customer.username).then(function(res) {
                     for(var i = 0;i<set.length;i++) {
                         result[set[i]] = res[set[i]]
                     }
@@ -324,7 +399,7 @@ function task() {
                 }).catch(function(err){return callback(err)})
 
             } else {
-                client.hgetallAsync('result_'+data.customerId).then(function(res){
+                client.hgetallAsync('result_'+data.customer.username).then(function(res){
                     return callback(null, res)
                 }).catch(function(err){return callback(err)})
             }
@@ -403,18 +478,24 @@ function task() {
 
 
     }
-    /**
-     * verify customer or crawler
-     * @param key
-     * @param username
-     * @param password
-     * @param callback
-     */
-    this.verifyUser = function(key, username, password, callback) {
-        client.hgetAsync(key, username).then(function(res) {
+
+
+    this.verifyClient = function(id, password, callback) {
+        client.hgetAsync('client', id).then(function(res) {
             if(res) {
                 res = JSON.parse(res)
-                if(res.password === password)
+                if(res.password === password && res.alive === 1)
+                    return callback(true)
+            }
+            return callback(false)
+        })
+    }
+
+    this.verifyCustomer = function(id, verifyCode, callback) {
+        client.hgetAsync('customer', id).then(function(res) {
+            if(res) {
+                res = JSON.parse(res)
+                if(res.verifyCode === verifyCode && res.alive === 1)
                     return callback(true)
             }
             return callback(false)
@@ -424,28 +505,39 @@ function task() {
     /**
      * when getting new task from server, its integrity should be verified
      * so no further error will be caused
-     * @param data
+     * @param reqBody
      * @returns {boolean}
      */
-    this.verifyDataIntegrity = function(data) {
+    this.verifyDataIntegrity = function(reqBody) {
+        var customer = reqBody.customer;
+        var template = reqBody.template;
+        var data = reqBody.data;
+        if(!data)
+            return false;
+        if(!customer || !customer.id)
+            return false;
+        if(!template || !template.id || !template.script || !template.ts)
+            return false;
         if(data.constructor == Array) {
             for(var i = 0; i<data.length;i++) {
-                if(data[i].customerData || data[i].template) {
-                    if(!data[i].customerData.customerId || !data[i].customerData.uid || !data[i].template.templateId || !data[i].template.content)
-                        return false;
-                } else {
+                if(!data[i].searchNo || !data[i].searchType)
                     return false;
-                }
             }
         } else {
-            if(data.customerData || data.template) {
-                if(!data.customerData.customerId || !data.customerData.uid || !data.template.templateId || !data.template.content)
-                    return false;
-            } else {
+            if(!data.searchNo || !data.searchType)
                 return false;
-            }
         }
         return true
+    }
+
+    this.genUid = function(customerId, templateId) {
+        var cipher = crypto.createCipher(config.cryptoAlgorithm, config.cryptoKey);
+        return cipher.update(customerId+'.'+templateId, 'utf8', 'hex') + cipher.final('hex');
+    }
+
+    this.resolveUid = function(taskId) {
+        var decipher = crypto.createDecipher(algorithm, key);
+        return  decipher.update(taskId, 'hex', 'utf8') + decipher.final('utf8');
     }
 }
 

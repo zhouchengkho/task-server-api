@@ -11,8 +11,11 @@ var config = {
     script: 'script',
     scriptKey: 'current',
     maxTaskCount: 10,
+    defaultTaskCount: 5,
     admin: 'admin',
-    adminPassword: '123456'
+    adminPassword: '123456',
+    cryptoAlgorithm: 'aes256',
+    cryptoKey: 'this-is-for-customer-template'
 }
 
 

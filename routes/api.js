@@ -35,7 +35,7 @@ router.post('/requestscript', function(req,res) {
             res.status(200).send({status: 'request failed: '+err})
         } else {
             console.log(key+' distributed: '+JSON.stringify(data));
-            res.status(200).send({script: data});
+            res.status(200).send(data);
         }
     });
 })
@@ -68,15 +68,12 @@ router.post('/report', function(req, res) {
 
 router.post('/filltask', function(req, res) {
     console.log('fill task');
-    task.initialize()
-    res.status(200).send({status: 'success'});
-
-    // task.filltask(req.body, function(err) {
-    //     if(err)
-    //         res.status(200).send({status: err});
-    //     else
-    //         res.status(200).send({status: 'success'});
-    // })
+    task.fillTask(req.body, function(err) {
+        if(err)
+            res.status(200).send({status: err});
+        else
+            res.status(200).send({status: 'success'});
+    })
 })
 
 router.post('/customerrequest', function(req, res) {

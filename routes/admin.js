@@ -7,14 +7,14 @@ var router = express.Router();
 var admin = require('../serverjs/admin');
 
 
-router.get('/', function(req, res) {
-    res.render('admin', { title: 'Admin', types: ['LIST', 'FIND', 'ADD', 'UPDATE', 'DELETE'], targets: ['CUSTOMER', 'CRAWLER'] });
+router.get('/index', function(req, res) {
+    res.render('admin', { title: 'Admin', targets: ['CUSTOMER', 'CRAWLER'] });
 
 });
 
 router.get('/login', function(req, res) {
     if(req.session.user) {
-        return res.redirect('/');
+        return res.redirect('/admin/index');
     } else {
         res.render('login', { title: 'Log In' });
     }

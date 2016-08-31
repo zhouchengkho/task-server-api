@@ -17,11 +17,11 @@
 
 ```
 {
-  "taskCount": 1
-  "crawler": {
-  "username": "crawler_1",
-  "password": "123456"
-  }
+  "taskCount": 1,
+  "client": {
+         "username": "client_1",
+         "password": "123456"
+         }
 }
 ```
 
@@ -45,15 +45,21 @@
 
 * POST /requestscript
 
+```
+{
+  "client":{
+    	"username": "client_1",
+    	"password": "123456"
+    }
+}
+```
+
 `Return`
 
 ```
 {
-    "script": "some script",
-     "crawler": {
-      "username": "crawler_1",
-      "password": "123456"
-      }
+   "script": "script content",
+    "ts": "2015-01-01 11:11:11"
 }
 ```
 
@@ -62,9 +68,9 @@
 ```
 {
   "taskCount": 1,
-   "crawler": {
-    "username": "crawler_1",
-    "password": "123456"
+  "client":{
+    	"username": "client_1",
+    	"password": "123456"
     }
 }
 ```
@@ -75,15 +81,8 @@
 {
     "taskRes": [
         {
-            "template": {
-                "templateId": "test",
-                "content": "test"
-            },
-            "customerData": {
-                "uid": "173f7e7e-1334-4a2e-8439-7ff6cbf5520b",
-                "customerId": ""
-            },
-            "taskId": "d564b552-f126-4639-b71a-0d93bf7bd182"
+            "taskId": "d564b552-f126-4639-b71a-0d93bf7bd182",
+            "uid": "dsjadja12312312312sdadas"
         }
     ],
     "scriptRes": "getdatdasdasdada"
@@ -95,17 +94,13 @@
 ```
 {
   "status": "success",
-   "crawler": {
-    "username": "crawler_1",
-    "password": "123456"
-    },
+   "client":{
+     	"id": "client_1",
+     	"password": "123456"
+     },
   "data":[{
-  	"taskId":"ec17fcb4-e1d3-4e7e-aaa0-c085eb0b46b0",
-  	"customerData":{
-  		"customerId":"keyun",
-  		"uid":"dasdada"
-  	},
-  	"result":"dasdasdasdas"
+  	"taskId":"fc90991a-f4a9-482d-a687-310e4fac0b0c",
+  	"result":"this is new yo"
   }]
 }
 ```
@@ -123,10 +118,10 @@
 
 ```
 {
-	 "customer": {
-      "username": "keyun",
-      "password": "123456"
-      },
+	 "customer":{
+       	"id": "yunkai",
+       	"verifyCode": "123456"
+       },
       "uidSet":[]
 }
 ```
@@ -146,19 +141,22 @@
 
 ```
 {
-  "priority":"high",
-  "data":[{
-    "template":
+  "customer": {
+    "id": "YUNK",
+    "verifyCode": "123456"
+  },
+  "template": {
+    "id": "26301",
+    "script": "script content",
+    "ts":"2015-01-01 00:00:00"
+  },
+  "priority": "low",
+  "data": [
     {
-      "templateId": "test",
-      "content": "test"
-    },
-    "customerData": 
-    {
-      "uid": "unique id",
-      "customerId": "keyun"
+      "searchNo": "CNLF005025",
+      "searchType": "craw.auto"
     }
-  }]
+  ]
 }
 ```
 

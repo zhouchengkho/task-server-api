@@ -30,13 +30,13 @@ function admin() {
     this.list = function(key, callback) {
         client.hgetallAsync(key).then(function(res) {
             var result = [];
-            for(var username in res) {
-                var data = JSON.parse(res[username])
+            for(var id in res) {
+                var data = JSON.parse(res[id])
                 // if(data.alive === 1) {
                 //     data.username = username;
                 //     result.push(data)
                 // }
-                data.username = username;
+                data.id = id;
                 result.push(data)
             }
             return callback(null, {data: result})
@@ -44,15 +44,15 @@ function admin() {
     }
 
     this.update = function(key, reqBody, callback) {
-        var username = reqBody.username;
+        var username = reqBody.id;
         var password = reqBody.password;
         client.hgetAsync(key, username).then(function(res) {
             if(res) {
                 var data = JSON.parse(res)
                 data.password = password
                 var status = 'success'
-                if(data.alive === 0) {
-                    data.alive = 1;
+                if(data.alive === false) {
+                    data.alive = true;
                     status = 'user renewed'
                 }
                 client.hset(key, username, JSON.stringify(data))
@@ -87,11 +87,12 @@ function admin() {
             } else {
                 var data = {
                     password: password,
-                    lastActive: new Date(),
-                    alive: 1
+                    lastActive: moment().format('YYYY-MM-DD HH:mm:s'),
+                    createTime: moment().format('YYYY-MM-DD HH:mm:s'),
+                    alive: true
                 };
                 if(key === 'crawler') {
-                    data.sucessCount = 0;
+                    data.successCount = 0;
                     data.failCount = 0;
                 }
                 client.hset(key, username, JSON.stringify(data))
@@ -106,7 +107,7 @@ function admin() {
         client.hgetAsync(key, username).then(function(res) {
             if(res) {
                 res = JSON.parse(res)
-                res.alive = 0;
+                res.alive = false;
                 client.hset(key, username, JSON.stringify(res))
                 return callback(null, {status: 'success'})
             } else {

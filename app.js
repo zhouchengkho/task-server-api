@@ -34,13 +34,13 @@ app.use(session({
     }
 }));
 
-// app.all('/*', function(req, res, next) {
+// app.all('/admin/*', function(req, res, next) {
 //     console.log(req.url)
 //     if(!req.session.user && req.url!= '/admin/login' && req.url.substr(0, 4) != '/api')
 //         return res.redirect('/admin/login');
 //     next()
 // })
-//
+
 
 
 

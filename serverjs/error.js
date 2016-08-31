@@ -10,7 +10,8 @@ var error = {
     DBDown: 'problem with database, contact admin',
     dataNotValid: 'Data missing valid attribute(s), please check',
     userNotExist: 'No correspondent user exists',
-    userExist: 'User already exists'
+    userExist: 'User already exists',
+    uidNotProvided: 'Please provide correspondent uid'
 }
 
 module.exports = error;
