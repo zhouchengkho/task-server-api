@@ -71,3 +71,13 @@ a {
 #gen-password {
     margin-left: 5px;
 }
+
+#customer {
+    font-weight: 500;
+}
+
+
+#client {
+    font-weight: 300;
+    margin-left: 5px;
+}

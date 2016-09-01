@@ -26,10 +26,10 @@ var crawlerData = {
 }
 client.hset('admin', config.admin, config.adminPassword)
 client.hset('customer', 'yunkai', customerData)
-client.hset('admin', 'crawler_1', crawlerData)
+client.hset('admin', 'client_1', crawlerData)
 
 console.log('Your admin has been set according to config')
 console.log('With initial customer: yunkai '+ JSON.stringify(customerData))
-console.log('With initial customer: crawler_1 '+ JSON.stringify(crawlerData))
+console.log('With initial client: client_1 '+ JSON.stringify(crawlerData))
 
 process.exit()

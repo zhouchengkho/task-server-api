@@ -1,25 +1,26 @@
 $(document).ready(function() {
 
 
-    var target = $.trim($('#target').find('option:selected').text().toLowerCase());
+    var target = 'customer'
+
 
     var customerField = [
-        { name: "id", type: "text", width: 50, editing: false},
-        { name: "verifyCode", type:"text", width: 70 },
-        { name: "email", type: "text", width: 70 },
-        { name: 'lastActive', type: 'text', width: 60, readOnly:true},
-        { name: "createdAt", type: 'text', width: 60, readOnly: true},
+        { name: "id", type: "text", width: 50, editing: false, validate: 'required'},
+        { name: "verifyCode", type:"text", width: 70, validate: 'required' },
+        { name: "email", type: "text", width: 70, validate: function(value) { return (value.split('@')).length === 2 } },
+        { name: 'lastActive', type: 'text', width: 60, editing: false, inserting: false },
+        { name: "createdAt", type: 'text', width: 60, editing: false, inserting: false},
         { type: "control" }
     ];
 
     var clientField = [
-        { name: "id", type: "text", width: 50, editing: false},
-        { name: "password", type:"text", width: 70 },
-        { name: "email", type: "text", width: 70 },
-        { name: 'successCount', type: 'number', width: 20, title: 'S'},
-        { name: 'failCount', type: 'number', width: 20, title: 'F'},
-        { name: 'lastActive', type: 'text', width: 60, readOnly:true},
-        { name: "createdAt", type: 'text', width: 60, readOnly: true},
+        { name: "id", type: "text", width: 50, editing: false, validate: 'required'},
+        { name: "password", type:"text", width: 70, validate: 'required' },
+        { name: "email", type: "text", width: 70, validate: function(value) { return (value.split('@')).length === 2 } },
+        { name: 'successCount', type: 'number', width: 20, title: 'S', editing: false, inserting: false },
+        { name: 'failCount', type: 'number', width: 20, title: 'F', editing: false, inserting: false },
+        { name: 'lastActive', type: 'text', width: 60, editing: false, inserting: false },
+        { name: "createdAt", type: 'text', width: 60, editing: false, inserting: false },
         { type: "control" }
     ]
 
@@ -49,7 +50,6 @@ $(document).ready(function() {
                         }
                     }
                 }
-                console.log(url)
                 var data = $.Deferred();
                 $.ajax({
                     type: 'GET',
@@ -129,64 +129,6 @@ $(document).ready(function() {
     })
 
 
-    $('#send').on('click', function() {
-        var type = $.trim($('#type').find('option:selected').text().toLowerCase());
-        var target = $.trim($('#target').find('option:selected').text().toLowerCase());
-        var method = '';
-        var data = '';
-        var url = '/admin/'+type+'/'+target;
-        switch (type) {
-            case 'list':
-                method = 'GET'
-                break;
-            case 'find':
-                method = 'GET'
-                url = url+'?username='+ $('#username').val()
-                break;
-            case 'update':
-                method = 'POST';
-                data = {
-                    username: $('#username').val(),
-                    password: $('#password').val()
-                }
-                data = JSON.stringify(data)
-                break;
-            case 'delete':
-                method = 'POST';
-                data = {
-                    username: $('#username').val(),
-                }
-                data = JSON.stringify(data)
-                break;
-            case 'add':
-                method = 'POST';
-                data = {
-                    username: $('#username').val(),
-                    password: $('#password').val()
-                }
-                data = JSON.stringify(data)
-                break;
-            default:
-                break;
-        }
-        $.ajax({
-            url: url,
-            method: method,
-            contentType: 'application/json; charset=utf-8',
-            data: data,
-            dataType: 'json',
-            success: function(res){
-                if(typeof res == 'object') {
-                    res = JSON.stringify(res, undefined, 4)
-                    document.getElementById('result').innerHTML = syntaxHighlight(res)
-                } else {
-                    document.getElementById('result').innerHTML = res
-                }            },
-            error: function(xhr, status, error) {
-                document.getElementById('result').innerHTML = error
-            }
-        })
-    })
 
     $('#logout').on('click', function() {
         $.ajax({
@@ -205,31 +147,27 @@ $(document).ready(function() {
         })
     })
 
+    $('#customer').on('click', function() {
+        target = 'customer'
+        gridOption.fields = customerField;
+        $(this).css('font-weight', 500);
+        $('#client').css('font-weight', 300)
+        $('#table').jsGrid(gridOption);
+    })
+
+
+    $('#client').on('click', function() {
+        target = 'client'
+        gridOption.fields = clientField
+        $(this).css('font-weight', 500);
+        $('#customer').css('font-weight', 300)
+        $('#table').jsGrid(gridOption);
+    })
+
 
 
     $("#table").jsGrid(gridOption);
 
 
-
-    function fetchData(url, method, data, callback) {
-
-        var options = {
-            url: url,
-            method: method,
-            contentType: 'application/json; charset=utf-8',
-            data: data,
-            success: function(res){
-                // alert('success '+JSON.stringify(res.data))
-                return res.data;
-            },
-            error: function(xhr, status, error) {
-                console.log(error)
-            }
-        }
-        if(method === 'POST')
-            options.dataType = 'json'
-
-        return $.ajax(options)
-    }
 
 })

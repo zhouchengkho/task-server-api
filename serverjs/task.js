@@ -131,7 +131,7 @@ function task() {
         var customerId = reqBody.customer.id;
         var templateId = reqBody.template.id;
         var ts = reqBody.template.ts;
-        var uid = self.genUid(customerId, templateId)
+        var uid = uuid.v4()
         // var uid = 'customer.template'
         if (reqData.constructor == Array) {
             for (var i = 0; i < reqData.length; i++) {
@@ -183,8 +183,9 @@ function task() {
     this.distribute = function(key, data, callback) {
         // var customerData = data.customerData;
         var self = this;
-        if(!data.client.id || !data.client.password)
+        if(!data.client || !data.client.id || !data.client.password)
             return callback(error.verifyFail)
+        console.log('wtf 1')
         this.verifyClient(data.client.id, data.client.password, function(valid) {
             if(!valid)
                 return callback(new Error(error.verifyFail))
@@ -199,16 +200,16 @@ function task() {
                     })
                     break;
                 case 'script':
-                    if(!data.uid)
-                        return callback(error.uidNotProvided)
-                    self.getScript(data.uid, function (err, res) {
+                    if(!data.taskId)
+                        return callback(error.taskIdNotProvided)
+                    self.getScript(data.taskId, function (err, res) {
                         return callback(err, res)
                     })
                     break;
                 case 'both':
-                    if(!data.uid)
-                        return callback(error.uidNotProvided)
-                    self.getScript(data.uid, function (scriptErr, scriptRes) {
+                    if(!data.taskId)
+                        return callback(error.taskIdNotProvided)
+                    self.getScript(data.taskId, function (scriptErr, scriptRes) {
                         if(scriptErr) return callback(scriptErr)
                         self.getTask(count, function(taskErr, taskRes) {
                             var res = {
@@ -275,13 +276,20 @@ function task() {
         }).catch(function(err){return callback(err)})
     }
     
-    this.getScript = function(key, callback) {
-        client.hgetAsync(script, key).then(function (resScript) {
-            if(!resScript)
+    this.getScript = function(taskId, callback) {
+        client.hgetAsync(handling, taskId).then(function(res) {
+            if(!res)
                 return callback(new Error(error.emptyScript))
-            resScript = JSON.parse(resScript)
-            return callback(null, resScript)
-        }).catch(function(err){return callback(err)})
+            res = JSON.parse(res)
+            return res.uid
+        }).then(function(uid) {
+            client.hgetAsync(script, uid).then(function (resScript) {
+                if(!resScript)
+                    return callback(new Error(error.emptyScript))
+                resScript = JSON.parse(resScript)
+                return callback(null, resScript)
+            }).catch(function(err){return callback(err)})
+        })
     }
 
     /**
@@ -296,7 +304,9 @@ function task() {
         if(typeof reqBody == 'string')
             reqBody = JSON.parse(reqBody)
         var status = reqBody.status;
-        var data = reqBody.data;
+        var data = reqBody.data ? reqBody.data : [];
+        if(!reqBody.client)
+            return callback(error.verifyFail)
         this.verifyClient(reqBody.client.id, reqBody.client.password, function(valid){
             if(!valid)
                 return callback(new Error(error.verifyFail))
@@ -484,7 +494,7 @@ function task() {
         client.hgetAsync('client', id).then(function(res) {
             if(res) {
                 res = JSON.parse(res)
-                if(res.password === password && res.alive === 1)
+                if(res.password === password && res.alive === true)
                     return callback(true)
             }
             return callback(false)
@@ -495,7 +505,7 @@ function task() {
         client.hgetAsync('customer', id).then(function(res) {
             if(res) {
                 res = JSON.parse(res)
-                if(res.verifyCode === verifyCode && res.alive === 1)
+                if(res.verifyCode === verifyCode && res.alive === true)
                     return callback(true)
             }
             return callback(false)

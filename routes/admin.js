@@ -7,10 +7,18 @@ var router = express.Router();
 var admin = require('../serverjs/admin');
 
 
+router.get('/', function(req, res) {
+    res.redirect('/admin/index')
+});
+
 router.get('/index', function(req, res) {
-    res.render('admin', { title: 'Admin', targets: ['CUSTOMER', 'CLIENT'] });
+    res.render('admin', { title: 'Admin' });
 
 });
+
+router.get('/settings', function(req, res) {
+    res.render('settings', { title: 'Settings' });
+})
 
 router.get('/login', function(req, res) {
     if(req.session.user) {
@@ -38,7 +46,7 @@ router.post('/logout', function(req, res) {
 })
 
 router.get('/list/:target', function(req, res) {
-    admin.list(req.params.target, function(err, data) {
+    admin.list(req.params.target, req.query, function(err, data) {
         if(err)
             res.status(200).send({status: err})
         else
@@ -81,5 +89,16 @@ router.post('/add/:target', function(req, res) {
             res.status(200).send(data)
     })
 
+})
+
+router.post('/change', function(req, res) {
+    admin.change(req.body, function(err, data) {
+        if(err)
+            res.status(200).send({status: err})
+        else {
+            req.session.user = null;
+            res.status(200).send(data)
+        }
+    })
 })
 module.exports = router;

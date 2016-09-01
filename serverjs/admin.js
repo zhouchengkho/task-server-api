@@ -27,17 +27,35 @@ function admin() {
         }).catch(function(err) {return callback(err)})
     }
 
-    this.list = function(key, callback) {
+    this.list = function(key, query, callback) {
         client.hgetallAsync(key).then(function(res) {
             var result = [];
             for(var id in res) {
                 var data = JSON.parse(res[id])
-                if(data.alive === true) {
-                    data.id = id;
+                data.id = id;
+                var valid = true
+                if(!data.alive)
+                    valid = false
+
+                for(var entry in query) {
+                    var toCompare = data[entry]
+                    if(typeof toCompare == 'string') {
+                        if(!contains(toCompare, query[entry])) {
+                            valid = false;
+                            break;
+                        }
+                    } else if(typeof toCompare == 'number') {
+                        if(! parseInt(query[entry] === toCompare)) {
+                            valid = false;
+                            break;
+                        }
+                    }
+
+                }
+                if(valid) {
                     result.push(data)
                 }
-                // data.id = id;
-                // result.push(data)
+
             }
             return callback(null, {data: result})
         }).catch(function(err) {return callback(err)})
@@ -115,7 +133,17 @@ function admin() {
             }
         }).catch(function(err) {return callback(err)})
     }
+
+    this.change = function(reqBody, callback) {
+        console.log(reqBody.username+' '+reqBody.password)
+        client.hsetAsync('admin', reqBody.username, reqBody.password).catch(function(err) {return callback(err)})
+        return callback(null, {status: 'success'})
+    }
 }
 
+
+function contains(str, substr) {
+    return str.indexOf(substr) >= 0;
+}
 
 module.exports = new admin();
