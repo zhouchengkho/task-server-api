@@ -4,43 +4,128 @@ $(document).ready(function() {
     var target = $.trim($('#target').find('option:selected').text().toLowerCase());
 
     var customerField = [
-        { name: "id", type: "text", width: 50, readOnly: true},
+        { name: "id", type: "text", width: 50, editing: false},
         { name: "verifyCode", type:"text", width: 70 },
-        { name: "email", type: "text", width: 100 },
-        { name: "alive", type: "checkbox", width: 50, title: "Is Alive", sorting: false },
-        { name: 'lastActive', type: 'text', width: 70, readOnly:true},
-        // { name: "createdAt", type: 'text', width: 100, readOnly: true},
+        { name: "email", type: "text", width: 70 },
+        { name: 'lastActive', type: 'text', width: 60, readOnly:true},
+        { name: "createdAt", type: 'text', width: 60, readOnly: true},
         { type: "control" }
     ];
 
-    $('#type').on('change', function() {
-        var type = $.trim($(this).find('option:selected').text().toLowerCase());
-        var username = $('#username')
-        var password = $('#password')
-        switch(type) {
-            case 'list':
-                username.attr('disabled', 'disabled');
-                password.attr('disabled', 'disabled');
-                break;
-            case 'find':
-                username.removeAttr('disabled');
-                password.attr('disabled', 'disabled');
-                break;
-            case 'update':
-                username.removeAttr('disabled');
-                password.removeAttr('disabled');
-                break;
-            case 'delete':
-                username.removeAttr('disabled');
-                password.attr('disabled', 'disabled');
-                break;
-            case 'add':
-                username.removeAttr('disabled');
-                password.removeAttr('disabled');
-                break;
-            default:
-                break;
-        }
+    var clientField = [
+        { name: "id", type: "text", width: 50, editing: false},
+        { name: "password", type:"text", width: 70 },
+        { name: "email", type: "text", width: 70 },
+        { name: 'successCount', type: 'number', width: 20, title: 'S'},
+        { name: 'failCount', type: 'number', width: 20, title: 'F'},
+        { name: 'lastActive', type: 'text', width: 60, readOnly:true},
+        { name: "createdAt", type: 'text', width: 60, readOnly: true},
+        { type: "control" }
+    ]
+
+    var gridOption = {
+        width: "100%",
+
+        inserting: true,
+        editing: true,
+        sorting: true,
+        paging: true,
+        pageSize: 10,
+        autoload: true,
+        filtering: true,
+        // data: [],
+
+        controller: {
+            loadData: function(filter) {
+                var url = '/admin/list/' + target;
+                var iniFilter = true
+                for(var entry in filter) {
+                    if(filter[entry] && filter[entry] != '') {
+                        if(iniFilter) {
+                            url = url + '?' + entry + '=' + filter[entry]
+                            iniFilter = false
+                        } else {
+                            url = url + '&' + entry + '=' + filter[entry]
+                        }
+                    }
+                }
+                console.log(url)
+                var data = $.Deferred();
+                $.ajax({
+                    type: 'GET',
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    dataType: 'json'
+                }).done(function(response){
+                    data.resolve(response.data);
+                });
+                return data.promise();
+            },
+            updateItem: function(item) {
+                var url = '/admin/update/' + target
+                var data = $.Deferred();
+                $.ajax({
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    data: JSON.stringify({data: item}),
+                    dataType: 'json'
+                }).done(function(res){
+                    if(res.status == 'success')
+                        data.resolve(item);
+                    else {
+                        alert('error: '+res.status)
+                        location.reload()
+                    }
+                });
+                return data.promise();
+            },
+            deleteItem: function(item) {
+                var url = '/admin/delete/'+ target
+                var data = $.Deferred();
+                $.ajax({
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    data: JSON.stringify({data: item}),
+                    dataType: 'json'
+                }).done(function(res){
+                    if(res.status == 'success')
+                        data.resolve(item);
+                    else {
+                        alert('error: '+res.status)
+                        location.reload()
+                    }
+                });
+                return data.promise();
+            },
+            insertItem: function(item) {
+                var url = '/admin/add/' + target
+                var data = $.Deferred();
+                $.ajax({
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    data: JSON.stringify({data: item}),
+                    dataType: 'json'
+                }).done(function(res){
+                    if(res.status == 'success')
+                        data.resolve(res.data);
+                    else {
+                        alert('error: '+res.status)
+                        location.reload()
+                    }
+                });
+                return data.promise();
+            }
+        },
+
+        fields: customerField
+    }
+    $('#target').on('change', function() {
+        target = $.trim($(this).find('option:selected').text().toLowerCase());
+        gridOption.fields = target === 'customer' ? customerField : clientField;
+        $('#table').jsGrid(gridOption);
     })
 
 
@@ -122,47 +207,12 @@ $(document).ready(function() {
 
 
 
-    $("#table").jsGrid({
-        width: "100%",
-
-        inserting: true,
-        editing: true,
-        sorting: true,
-        paging: true,
-        pageSize: 10,
-        autoload: true,
-        filtering: true,
-        // data: [],
-
-        controller: {
-           loadData: function(filter) {
-               console.log(JSON.stringify(filter))
-               var data = $.Deferred();
-               $.ajax({
-                   type: "GET",
-                   contentType: "application/json; charset=utf-8",
-                   url: "/admin/list/customer",
-                   dataType: "json"
-               }).done(function(response){
-                   data.resolve(response.data);
-               });
-               return data.promise();
-           },
-            updateItem: function(item, editedItem) {
-                console.log('item: '+JSON.stringify(item));
-                console.log('edited: '+JSON.stringify(editedItem))
-                var data = $.Deferred();
-                data.resolve({id:'update'})
-                return data.promise()
-            }
-        },
-
-        fields: target === 'customer' ? customerField : []
-    });
+    $("#table").jsGrid(gridOption);
 
 
 
-    function fetchData(url, method, data) {
+    function fetchData(url, method, data, callback) {
+
         var options = {
             url: url,
             method: method,

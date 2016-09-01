@@ -8,7 +8,7 @@ var admin = require('../serverjs/admin');
 
 
 router.get('/index', function(req, res) {
-    res.render('admin', { title: 'Admin', targets: ['CUSTOMER', 'CRAWLER'] });
+    res.render('admin', { title: 'Admin', targets: ['CUSTOMER', 'CLIENT'] });
 
 });
 

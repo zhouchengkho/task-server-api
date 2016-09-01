@@ -3,19 +3,24 @@
  */
 var redis = require('redis');
 var config = require('./config');
+var moment = require('miment');
 var client = redis.createClient({host: config.redisHost, port: config.redisPort});
 
 
 var customerData = {
-    password: '123456',
-    lasActive: new Date(),
-    alive: 1
+    verifyCode: '123456',
+    email: 'a@b.com',
+    createdAt: moment().format('YY-MM-DD HH:MM:s'),
+    lasActive: moment().format('YY-MM-DD HH:MM:s'),
+    alive: true
 }
 
 var crawlerData = {
     password: '123456',
-    lasActive: new Date(),
-    alive: 1,
+    lasActive: moment().format('YY-MM-DD HH:MM:s'),
+    email: 'a@b.com',
+    createdAt: moment().format('YY-MM-DD HH:MM:s'),
+    alive: true,
     successCount: 0,
     failCount: 0
 }

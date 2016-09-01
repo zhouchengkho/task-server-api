@@ -32,36 +32,40 @@ function admin() {
             var result = [];
             for(var id in res) {
                 var data = JSON.parse(res[id])
-                // if(data.alive === 1) {
-                //     data.username = username;
-                //     result.push(data)
-                // }
-                data.id = id;
-                result.push(data)
+                if(data.alive === true) {
+                    data.id = id;
+                    result.push(data)
+                }
+                // data.id = id;
+                // result.push(data)
             }
             return callback(null, {data: result})
         }).catch(function(err) {return callback(err)})
     }
 
     this.update = function(key, reqBody, callback) {
-        var username = reqBody.id;
-        var password = reqBody.password;
-        client.hgetAsync(key, username).then(function(res) {
-            if(res) {
-                var data = JSON.parse(res)
-                data.password = password
-                var status = 'success'
-                if(data.alive === false) {
-                    data.alive = true;
-                    status = 'user renewed'
-                }
-                client.hset(key, username, JSON.stringify(data))
-                return callback(null, {status: status})
-            } else {
-                return callback(null, {status: error.userNotExist})
-            }
+        var data = reqBody.data;
+        var id = data.id;
 
-        }).catch(function(err) {return callback(err)})
+        client.hsetAsync(key, id, JSON.stringify(data)).catch(function(err){return callback(err)})
+
+        return callback(null, {status: 'success'})
+        // client.hgetAsync(key, id).then(function(res) {
+        //     if(res) {
+        //         // var data = JSON.parse(res)
+        //         // data.password = password
+        //         var status = 'success'
+        //         // if(data.alive === false) {
+        //         //     data.alive = true;
+        //         //     status = 'user renewed'
+        //         // }
+        //         client.hset(key, username, JSON.stringify(data))
+        //         return callback(null, {status: status})
+        //     } else {
+        //         return callback(null, {status: error.userNotExist})
+        //     }
+        //
+        // }).catch(function(err) {return callback(err)})
     }
 
     this.find = function(key, username, callback) {
@@ -79,36 +83,32 @@ function admin() {
     }
 
     this.add = function(key, reqBody, callback) {
-        var username = reqBody.username;
-        var password = reqBody.password;
-        client.hgetAsync(key, username).then(function(res) {
+        var data = reqBody.data;
+        var id = data.id;
+        client.hgetAsync(key, id).then(function(res) {
             if(res) {
                 return callback(null, {status: error.userExist})
             } else {
-                var data = {
-                    password: password,
-                    lastActive: moment().format('YYYY-MM-DD HH:mm:s'),
-                    createTime: moment().format('YYYY-MM-DD HH:mm:s'),
-                    alive: true
-                };
-                if(key === 'crawler') {
+                data.lastActive = moment().format('YYYY-MM-DD HH:mm:s')
+                data.createdAt = moment().format('YYYY-MM-DD HH:mm:s')
+                data.alive = true;
+                if(key === 'client') {
                     data.successCount = 0;
                     data.failCount = 0;
                 }
-                client.hset(key, username, JSON.stringify(data))
-                return callback(null, {status: 'success'})
+                client.hset(key, id, JSON.stringify(data))
+                return callback(null, {status: 'success', data: data})
             }
         }).catch(function(err) {return callback(err)})
-
     }
 
     this.delete = function(key, reqBody, callback) {
-        var username = reqBody.username;
-        client.hgetAsync(key, username).then(function(res) {
+        var id = reqBody.data.id;
+        client.hgetAsync(key, id).then(function(res) {
             if(res) {
                 res = JSON.parse(res)
                 res.alive = false;
-                client.hset(key, username, JSON.stringify(res))
+                client.hset(key, id, JSON.stringify(res))
                 return callback(null, {status: 'success'})
             } else {
                 return callback(null, {status: error.userNotExist})
