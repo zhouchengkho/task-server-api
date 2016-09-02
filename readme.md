@@ -19,7 +19,7 @@
 {
   "taskCount": 1,
   "client": {
-         "username": "client_1",
+         "id": "client_1",
          "password": "123456"
          }
 }
