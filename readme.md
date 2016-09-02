@@ -46,7 +46,7 @@
 ```
 {
   "client":{
-    	"username": "client_1",
+    	"id": "client_1",
     	"password": "123456"
     },
     "taskId": "some uuid"
@@ -68,7 +68,7 @@
 {
   "taskCount": 1,
   "client":{
-    	"username": "client_1",
+    	"id": "client_1",
     	"password": "123456"
     },
     "taskId": "some uuid"
