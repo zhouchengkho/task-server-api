@@ -11,7 +11,8 @@ var error = {
     dataNotValid: 'Data missing valid attribute(s), please check',
     userNotExist: 'No correspondent user exists',
     userExist: 'User already exists',
-    taskIdNotProvided: 'Please provide correspondent task id'
+    taskIdNotProvided: 'Please provide correspondent task id',
+    adminInited: 'Already has admin, init failed'
 }
 
 module.exports = error;

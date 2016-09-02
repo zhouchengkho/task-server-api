@@ -68,22 +68,6 @@ function admin() {
         client.hsetAsync(key, id, JSON.stringify(data)).catch(function(err){return callback(err)})
 
         return callback(null, {status: 'success'})
-        // client.hgetAsync(key, id).then(function(res) {
-        //     if(res) {
-        //         // var data = JSON.parse(res)
-        //         // data.password = password
-        //         var status = 'success'
-        //         // if(data.alive === false) {
-        //         //     data.alive = true;
-        //         //     status = 'user renewed'
-        //         // }
-        //         client.hset(key, username, JSON.stringify(data))
-        //         return callback(null, {status: status})
-        //     } else {
-        //         return callback(null, {status: error.userNotExist})
-        //     }
-        //
-        // }).catch(function(err) {return callback(err)})
     }
 
     this.find = function(key, username, callback) {
@@ -138,6 +122,15 @@ function admin() {
         console.log(reqBody.username+' '+reqBody.password)
         client.hsetAsync('admin', reqBody.username, reqBody.password).catch(function(err) {return callback(err)})
         return callback(null, {status: 'success'})
+    }
+
+    this.init = function(callback) {
+        client.hgetallAsync('admin').then(function(res) {
+            if(res)
+                return callback(new Error(error.adminInited))
+            client.hset('admin', config.admin, config.adminPassword)
+            return callback(null, {status: 'success with info: \n'+config.admin+' / '+config.adminPassword})
+        }).catch(function(err) {return callback(err)})
     }
 }
 

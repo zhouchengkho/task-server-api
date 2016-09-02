@@ -1,10 +1,10 @@
-#TASK SERVER
+# TASK SERVER
 
-##What does task server do
+## What does task server do
 * Basically it retrieve task from server then distribute to users to finish and store feedback
 * Uses Redis
 
-##How to start
+## How to start
 * Run `npm install` to install all the dependencies
 * Make sure you configure in `/serverjs/config.js` first
 * Run `node /serverjs/admininit.js` to set up admin
@@ -12,7 +12,7 @@
 
 
 
-##request data format
+## request data format
 * POST /requesttask
 
 ```
@@ -30,15 +30,13 @@
 ```
 [
     {
-        "template": {
-            "templateId": "test",
-            "content": "test"
-        },
-        "customerData": {
-            "uid": "04afaa30-2943-47a0-977b-4be01ae5cabc",
-            "customerId": "lifeng"
-        },
-        "taskId": "4f08f2f0-7154-4fb4-9e26-49282c3e005e"
+        "taskId": "d90a72bf-608f-4fc8-a95d-26b6b3913893",
+        "uid": "cb9c77d3-fc28-4be9-9917-1fa3ed6bf74a",
+        "ts": "2015-01-01 00:00:00",
+        "data": {
+            "searchNo": "CNLF005025",
+            "searchType": "craw.auto"
+        }
     }
 ]
 ```
@@ -50,7 +48,8 @@
   "client":{
     	"username": "client_1",
     	"password": "123456"
-    }
+    },
+    "taskId": "some uuid"
 }
 ```
 
@@ -71,7 +70,8 @@
   "client":{
     	"username": "client_1",
     	"password": "123456"
-    }
+    },
+    "taskId": "some uuid"
 }
 ```
 
@@ -81,11 +81,19 @@
 {
     "taskRes": [
         {
-            "taskId": "d564b552-f126-4639-b71a-0d93bf7bd182",
-            "uid": "dsjadja12312312312sdadas"
+            "taskId": "414dc4eb-5586-4e45-8906-67e64e14018c",
+            "uid": "c0cfd5ad-8ec8-4deb-8e74-0eb24599ea95",
+            "ts": "2015-01-01 00:00:00",
+            "data": {
+                "searchNo": "CNLF005025",
+                "searchType": "craw.auto"
+            }
         }
     ],
-    "scriptRes": "getdatdasdasdada"
+    "scriptRes": {
+        "script": "script content",
+        "ts": "2015-01-01 00:00:00"
+    }
 }
 ```
 

@@ -9,7 +9,6 @@ var config = {
     low: 'low',
     handling: 'handling',
     script: 'script',
-    scriptKey: 'current',
     maxTaskCount: 10,
     defaultTaskCount: 5,
     admin: 'admin',

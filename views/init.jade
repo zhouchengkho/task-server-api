@@ -1,0 +1,20 @@
+doctype html
+html
+    head
+        title= title
+        link(rel='stylesheet', href='/stylesheets/bootstrap.css')
+        link(rel='stylesheet', href='/stylesheets/style.css')
+        link(rel='stylesheet', href='/stylesheets/jsgrid.css')
+        link(rel='stylesheet', href='/stylesheets/jsgrid-theme.css')
+
+
+    body
+        div
+            h1(class='display-inline-right')= title
+            a(href='index') Admin
+        div
+            a(id='init') Init Admin
+            h5(id='msg')
+
+    script(src='/javascripts/jquery.js', type='text/javascript')
+    script(src='/javascripts/init.js', type='text/javascript')

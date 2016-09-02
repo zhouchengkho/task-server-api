@@ -3,7 +3,6 @@
  */
 var redis = require('redis');
 var bluebird = require('bluebird'); // for async
-var crypto = require('crypto');
 var uuid = require('uuid');
 var test = require('./test');
 var config = require('./config');
@@ -22,7 +21,6 @@ var high = config.high;
 var low = config.low;
 var handling = config.handling;
 var script = config.script;
-var scriptKey = config.scriptKey;
 var maxTaskCount = config.maxTaskCount;
 var defaultTaskCount = config.defaultTaskCount;
 function task() {
@@ -185,7 +183,7 @@ function task() {
         var self = this;
         if(!data.client || !data.client.id || !data.client.password)
             return callback(error.verifyFail)
-        console.log('wtf 1')
+
         this.verifyClient(data.client.id, data.client.password, function(valid) {
             if(!valid)
                 return callback(new Error(error.verifyFail))
@@ -232,47 +230,17 @@ function task() {
         var result = [];
 
         client.lrangeAsync(high, 0, -1).then(function (highList) { // get task from high priority
-            var highLen = highList.length ?  highList.length : 0;
-            if(highLen >= 1) {
-                // var result = JSON.parse(list[0]);
-                var i = 0;
-                while(i < highLen && count > 0 ) {
-                    var res = JSON.parse(highList[i])
-                    var data = {};
-                    data.taskId = res.taskId;
-                    data.uid = res.uid
-                    data.ts = res.ts
-                    data.data = res.data
-                    result.push(data)
-                    client.hset(handling, res.taskId, highList[i]);
-                    client.lpop(high);
-                    i++; count--;
-                }
-            }
-            return count;
+            listToResult(result, highList, 'high', count)
+            return count - (highList.length ?  highList.length : 0);
         }).then(function(count) {
-            if(count > 0) {
-                client.lrangeAsync(low, 0, -1).then(function(lowList) {
-                    var lowLen = lowList.length ? lowList.length : 0;
-                    if(lowLen >= 1) { // get task from high priority
-                        var i = 0;
-                        while(i < lowLen && count > 0 ) {
-                            var res = JSON.parse(lowList[i])
-                            var data = {};
-                            data.taskId = res.taskId;
-                            data.uid = res.uid
-                            data.data = res.data
-                            result.push(data)
-                            client.hset(handling, res.taskId, lowList[i]);
-                            client.lpop(low);
-                            i++; count--;
-                        }
-                    }
-                    return callback(null ,result)
-                }).catch(function(err){ return callback(err)})
-            } else {
+            if(count <= 0)
                 return callback(null, result)
-            }
+
+            client.lrangeAsync(low, 0, -1).then(function(lowList) {
+                listToResult(result, lowList, 'low', count)
+                return callback(null ,result)
+            }).catch(function(err){ return callback(err)})
+
         }).catch(function(err){return callback(err)})
     }
     
@@ -479,7 +447,7 @@ function task() {
                             result.push(JSON.parse(handlingRes[key]))
                             count--;
                         }
-                        res.handlingRes = handlingRes;
+                        res.handlingRes = result;
                         return callback(null, res);
                     })
                 }).catch(function(err){return callback(err)})
@@ -498,7 +466,7 @@ function task() {
                     return callback(true)
             }
             return callback(false)
-        })
+        }).catch(function(err) { return callback(false) })
     }
 
     this.verifyCustomer = function(id, verifyCode, callback) {
@@ -540,16 +508,68 @@ function task() {
         return true
     }
 
-    this.genUid = function(customerId, templateId) {
-        var cipher = crypto.createCipher(config.cryptoAlgorithm, config.cryptoKey);
-        return cipher.update(customerId+'.'+templateId, 'utf8', 'hex') + cipher.final('hex');
-    }
-
-    this.resolveUid = function(taskId) {
-        var decipher = crypto.createDecipher(algorithm, key);
-        return  decipher.update(taskId, 'hex', 'utf8') + decipher.final('utf8');
-    }
 }
 
+/**
+ * gen random array for getTask use
+ * @param random (boolean)
+ * @param range (list len)
+ * @param count
+ * @returns {Array}
+ */
+function genArray(random, range, count) {
+    var arr = [];
+
+    for (var i = 0; i <= range-1; i++) {
+        arr.push(i);
+    }
+    if(!random)
+        return arr
+
+    arr.sort(
+        function () {
+            return 0.5 - Math.random();
+        }
+    );
+
+    arr.length = count;
+    return arr
+
+}
+
+
+/**
+ * put data to result
+ * delete from current list (marked by key)
+ * store in handling
+ * @param result
+ * @param list
+ * @param key
+ * @param count
+ */
+function listToResult(result, list, key, count) {
+    var len = list.length ?  list.length : 0;
+    var multi = client.multi()
+    var arr = [];
+    if(len > count) {
+        arr = genArray(true, len, count)
+    } else {
+        arr = genArray(false, len, count)
+    }
+    for(var i =  0; i < arr.length; i++) {
+        var res = JSON.parse(list[arr[i]])
+        var data = {};
+        data.taskId = res.taskId;
+        data.uid = res.uid
+        data.ts = res.ts
+        data.data = res.data
+        result.push(data)
+        client.hset(handling, res.taskId, list[arr[i]]);
+        // client.lpop(high);
+        multi.lset(key, arr[i], 'del')
+    }
+    multi.lrem(key, 0, 'del')
+    multi.exec()
+}
 
 module.exports = new task();

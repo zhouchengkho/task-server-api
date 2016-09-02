@@ -20,6 +20,10 @@ router.get('/settings', function(req, res) {
     res.render('settings', { title: 'Settings' });
 })
 
+router.get('/init', function(req, res) {
+    res.render('init', { title: 'Init' });
+})
+
 router.get('/login', function(req, res) {
     if(req.session.user) {
         return res.redirect('/admin/index');
@@ -99,6 +103,15 @@ router.post('/change', function(req, res) {
             req.session.user = null;
             res.status(200).send(data)
         }
+    })
+})
+
+router.post('/init', function(req, res) {
+    admin.init(function(err, data) {
+        if(err)
+            res.status(200).send({status: err.toString()})
+        else
+            res.status(200).send(data)
     })
 })
 module.exports = router;
