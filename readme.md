@@ -1,7 +1,7 @@
 # TASK SERVER
 
 ## What does task server do
-* Basically it retrieve task from server then distribute to users to finish and store feedback
+* Basically it retrieves task from server then distribute to users to finish and store feedback
 * Uses Redis
 
 ## How to start
